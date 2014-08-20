@@ -5,8 +5,8 @@ void ofApp::setup(){
 
 	ofBackground(34, 34, 34);
 
-	// 2 output channels,
-	// 0 input channels
+	// 8+ output channels,
+	// 2+ input channels
 	// 22050 samples per second
 	// 512 samples per buffer
 	// 4 num buffers (latency)
@@ -21,19 +21,24 @@ void ofApp::setup(){
 
     //output
 	lAudio.assign(bufferSize, 0.0);
-	rAudio.assign(bufferSize, 0.0);
+    speaker1Index = 0;
+	
+    rAudio.assign(bufferSize, 0.0);
+    speaker2Index = 10000;
+    
     nAudio.assign(bufferSize, 0.0);
-		
-	//input
+    delaySamples.assign(2048*16, 0.0);
+	
+    //input
 	left.assign(bufferSize, 0.0);
 	right.assign(bufferSize, 0.0);
     
 	soundStream.listDevices();
 	
 	//if you want to set the device id to be different than the default
-    soundStream.setDeviceID(9); 	//note some devices are input only and some are output only
+//    soundStream.setDeviceID(9); 	//note some devices are input only and some are output only
 
-	soundStream.setup(this, 3, 2, sampleRate, bufferSize, 5);
+	soundStream.setup(this, 2, 2, sampleRate, bufferSize, 5);
 
 	ofSetFrameRate(60);
 }
@@ -54,16 +59,18 @@ void ofApp::draw(){
 	
     drawSoundrect("Left Channel", lAudio,ofVec2f(32, 50),ofVec2f(900, 100));
     drawSoundrect("Right Channel", rAudio,ofVec2f(32, 150),ofVec2f(900, 100));
-	drawSoundrect("nAudio", nAudio,ofVec2f(32, 250),ofVec2f(900, 100));
-		
+//	drawSoundrect("nAudio", nAudio,ofVec2f(32, 250),ofVec2f(900, 100));
+    drawSoundrect("LeftIn", left,ofVec2f(32, 250),ofVec2f(900, 100));
+    drawSoundrect("delaySamples", delaySamples,ofVec2f(32, 350),ofVec2f(900, 100));
+    
 	ofSetColor(225);
-	string reportString = "volume: ("+ofToString(volume, 2)+") modify with -/+ keys\npan: ("+ofToString(pan, 2)+") modify with mouse x\nsynthesis: ";
-	if( !bNoise ){
-		reportString += "sine wave (" + ofToString(targetFrequency, 2) + "hz) modify with mouse y";
-	}else{
-		reportString += "noise";	
-	}
-	ofDrawBitmapString(reportString, 32, 579);
+//	string reportString = "volume: ("+ofToString(volume, 2)+") modify with -/+ keys\npan: ("+ofToString(pan, 2)+") modify with mouse x\nsynthesis: ";
+//	if( !bNoise ){
+//		reportString += "sine wave (" + ofToString(targetFrequency, 2) + "hz) modify with mouse y";
+//	}else{
+//		reportString += "noise";	
+//	}
+//	ofDrawBitmapString(reportString, 32, 579);
 
 }
 
@@ -164,17 +171,26 @@ void ofApp::audioIn(float * input, int bufferSize, int nChannels){
 	// samples are "interleaved"
 	int numCounted = 0;
     
+
+    for (int i = 0; i < delaySamples.size(); i++)
+    {
+        delaySamples[i] *= .99;
+    }
 	//lets go through each sample and calculate the root mean square which is a rough way to calculate volume
     //interleaved samples
-	for (int i = 0; i < bufferSize; i++){
+	for (int i = 0; i < bufferSize; i++)
+    {
 		left[i]		= input[i*2]*0.5;
 		right[i]	= input[i*2+1]*0.5;
-        
 		curVol += left[i] * left[i];
 		curVol += right[i] * right[i];
 		numCounted+=2;
+        int myIndex = (delayMic1InsertionIndex+i)%delaySamples.size();
+        delaySamples[myIndex] += input[i*2];
+//        delaySamples.pop_back();
+//        delaySamples.insert(delaySamples.begin(), input[i*2]);
 	}
-	
+	delayMic1InsertionIndex = (delayMic1InsertionIndex+bufferSize)%delaySamples.size();
 	//this is how we get the mean of rms :)
 	curVol /= (float)numCounted;
 	
@@ -189,33 +205,48 @@ void ofApp::audioIn(float * input, int bufferSize, int nChannels){
 }
 
 //--------------------------------------------------------------
-void ofApp::audioOut(float * output, int bufferSize, int nChannels){
+void ofApp::audioOut(float * output, int bufferSize, int nChannels)
+{
 	//pan = 0.5f;
 	float leftScale = 1 - pan;
 	float rightScale = pan;
 
 	// sin (n) seems to have trouble when n is very large, so we
 	// keep phase in the range of 0-TWO_PI like this:
-	while (phase > TWO_PI){
+	while (phase > TWO_PI)
+    {
 		phase -= TWO_PI;
 	}
 
-	if ( bNoise == true){
+	if ( bNoise == true)
+    {
 		// ---------------------- noise --------------
-		for (int i = 0; i < bufferSize; i++){
+		for (int i = 0; i < bufferSize; i++)
+        {
 			lAudio[i] = output[i*nChannels    ] = ofRandom(0, 1) * volume * leftScale;
 			rAudio[i] = output[i*nChannels + 1] = ofRandom(0, 1) * volume * rightScale;
 		}
 	} else {
 		phaseAdder = 0.95f * phaseAdder + 0.05f * phaseAdderTarget;
-		for (int i = 0; i < bufferSize; i++){
-			phase += phaseAdder;
+		for (int i = 0; i < bufferSize; i++)
+        {
+
+            
+            int myIndex = (speaker1Index+i) % delaySamples.size();
+            lAudio[i] = output[i*nChannels    ] = delaySamples[myIndex];
+            myIndex = (speaker2Index+i) % delaySamples.size();
+            rAudio[i] = output[i*nChannels + 1] = delaySamples[myIndex];
+            
+            phase += phaseAdder;
 			float sample = sin(phase);
-			lAudio[i] = output[i*nChannels    ] = sample * volume * leftScale;
-			rAudio[i] = output[i*nChannels + 1] = sample * volume * rightScale;
-            nAudio[i] = output[i*nChannels + 2] = sample * volume * rightScale;//sin(phase*.4) * volume * rightScale;
+//			lAudio[i] = output[i*nChannels    ] = sample * volume * leftScale;
+//			rAudio[i] = output[i*nChannels + 1] = sample * volume * rightScale;
+//            nAudio[i] = output[i*nChannels + 2] = sample * volume * rightScale;//sin(phase*.4) * volume * rightScale;
 		}
 	}
+    
+    speaker1Index = (speaker1Index+bufferSize) % delaySamples.size();
+    speaker2Index = (speaker2Index+bufferSize) % delaySamples.size();
     ofLog(OF_LOG_ERROR,"nChannels: " + ofToString(nChannels));
 }
 

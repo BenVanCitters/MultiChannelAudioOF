@@ -34,13 +34,23 @@ class ofApp : public ofBaseApp{
 		float 	volume;
 
 	//output
+
     vector <float> lAudio;
+    int speaker1Index;
+    
 		vector <float> rAudio;
-        vector <float> nAudio;
+    int speaker2Index;
+    vector <float> nAudio;
+    
+    
+    int delayMic1InsertionIndex;
+    vector <float> delaySamples;
     
     // input
     vector <float> left;
     vector <float> right;
+    
+    
 		
 		//------------------- for the simple sine wave synthesis
 		float 	targetFrequency;
