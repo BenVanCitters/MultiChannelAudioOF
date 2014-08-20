@@ -22,8 +22,11 @@ class ofApp : public ofBaseApp{
 		
 		void audioOut(float * input, int bufferSize, int nChannels);
 		void audioIn(float * input, int bufferSize, int nChannels);
-		
-		ofSoundStream soundStream;
+
+
+    void drawSoundrect(string name, vector <float> samples,ofVec2f pos, ofVec2f sz);
+    
+        ofSoundStream soundStream;
 
 		float 	pan;
 		int		sampleRate;

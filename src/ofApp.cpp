@@ -48,59 +48,13 @@ void ofApp::update(){
 void ofApp::draw(){
 
 	ofSetColor(225);
-	ofDrawBitmapString("AUDIO OUTPUT EXAMPLE", 32, 32);
-	ofDrawBitmapString("press 's' to unpause the audio\npress 'e' to pause the audio", 31, 92);
+	ofDrawBitmapString("press 's' to unpause the audio\npress 'e' to pause the audio", 31, 32);
 	
 	ofNoFill();
 	
-	// draw the left channel:
-	ofPushStyle();
-		ofPushMatrix();
-		ofTranslate(32, 150, 0);
-			
-		ofSetColor(225);
-		ofDrawBitmapString("Left Channel", 4, 18);
-		
-		ofSetLineWidth(1);	
-		ofRect(0, 0, 900, 200);
-
-		ofSetColor(245, 58, 135);
-		ofSetLineWidth(3);
-					
-			ofBeginShape();
-			for (unsigned int i = 0; i < lAudio.size(); i++){
-				float x =  ofMap(i, 0, lAudio.size(), 0, 900, true);
-				ofVertex(x, 100 -lAudio[i]*180.0f);
-			}
-			ofEndShape(false);
-			
-		ofPopMatrix();
-	ofPopStyle();
-
-	// draw the right channel:
-	ofPushStyle();
-		ofPushMatrix();
-		ofTranslate(32, 350, 0);
-			
-		ofSetColor(225);
-		ofDrawBitmapString("Right Channel", 4, 18);
-		
-		ofSetLineWidth(1);	
-		ofRect(0, 0, 900, 200);
-
-		ofSetColor(245, 58, 135);
-		ofSetLineWidth(3);
-					
-			ofBeginShape();
-			for (unsigned int i = 0; i < nAudio.size(); i++){
-				float x =  ofMap(i, 0, nAudio.size(), 0, 900, true);
-				ofVertex(x, 100 - nAudio[i]*180.0f);
-			}
-			ofEndShape(false);
-			
-		ofPopMatrix();
-	ofPopStyle();
-	
+    drawSoundrect("Left Channel", lAudio,ofVec2f(32, 50),ofVec2f(900, 100));
+    drawSoundrect("Right Channel", rAudio,ofVec2f(32, 150),ofVec2f(900, 100));
+	drawSoundrect("nAudio", nAudio,ofVec2f(32, 250),ofVec2f(900, 100));
 		
 	ofSetColor(225);
 	string reportString = "volume: ("+ofToString(volume, 2)+") modify with -/+ keys\npan: ("+ofToString(pan, 2)+") modify with mouse x\nsynthesis: ";
@@ -113,6 +67,32 @@ void ofApp::draw(){
 
 }
 
+void ofApp::drawSoundrect(string name, vector <float> samples,ofVec2f pos, ofVec2f sz)
+{
+    ofPushStyle();
+    ofPushMatrix();
+    ofTranslate(pos.x, pos.y, 0);
+    
+    ofSetColor(225);
+    ofDrawBitmapString(name, 4, 18);
+    
+    ofSetLineWidth(1);
+    ofRect(0, 0, sz.x, sz.y);
+    
+    ofSetColor(245, 58, 135);
+    ofSetLineWidth(3);
+    
+    ofBeginShape();
+    for (unsigned int i = 0; i < samples.size(); i++){
+        float x =  ofMap(i, 0, samples.size(), 0, sz.x, true);
+        ofVertex(x, (sz.y/2) - samples[i]*sz.y*.9);
+    }
+    ofEndShape(false);
+    
+    ofPopMatrix();
+	ofPopStyle();
+
+}
 
 //--------------------------------------------------------------
 void ofApp::keyPressed  (int key){
@@ -135,12 +115,14 @@ void ofApp::keyPressed  (int key){
 }
 
 //--------------------------------------------------------------
-void ofApp::keyReleased  (int key){
+void ofApp::keyReleased  (int key)
+{
 
 }
 
 //--------------------------------------------------------------
-void ofApp::mouseMoved(int x, int y ){
+void ofApp::mouseMoved(int x, int y )
+{
 	int width = ofGetWidth();
 	pan = (float)x / (float)width;
 	float height = (float)ofGetHeight();
@@ -150,24 +132,28 @@ void ofApp::mouseMoved(int x, int y ){
 }
 
 //--------------------------------------------------------------
-void ofApp::mouseDragged(int x, int y, int button){
+void ofApp::mouseDragged(int x, int y, int button)
+{
 	int width = ofGetWidth();
 	pan = (float)x / (float)width;
 }
 
 //--------------------------------------------------------------
-void ofApp::mousePressed(int x, int y, int button){
+void ofApp::mousePressed(int x, int y, int button)
+{
 	bNoise = true;
 }
 
 
 //--------------------------------------------------------------
-void ofApp::mouseReleased(int x, int y, int button){
+void ofApp::mouseReleased(int x, int y, int button)
+{
 	bNoise = false;
 }
 
 //--------------------------------------------------------------
-void ofApp::windowResized(int w, int h){
+void ofApp::windowResized(int w, int h)
+{
 
 }
 //--------------------------------------------------------------
@@ -226,7 +212,7 @@ void ofApp::audioOut(float * output, int bufferSize, int nChannels){
 			phase += phaseAdder;
 			float sample = sin(phase);
 			lAudio[i] = output[i*nChannels    ] = sample * volume * leftScale;
-//			rAudio[i] = output[i*nChannels + 1] = sample * volume * rightScale;
+			rAudio[i] = output[i*nChannels + 1] = sample * volume * rightScale;
             nAudio[i] = output[i*nChannels + 2] = sample * volume * rightScale;//sin(phase*.4) * volume * rightScale;
 		}
 	}
