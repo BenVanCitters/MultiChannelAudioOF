@@ -57,11 +57,14 @@ void ofApp::draw(){
 	
 	ofNoFill();
 	
-    drawSoundrect("Left Channel", lAudio,ofVec2f(32, 50),ofVec2f(900, 100));
-    drawSoundrect("Right Channel", rAudio,ofVec2f(32, 150),ofVec2f(900, 100));
-//	drawSoundrect("nAudio", nAudio,ofVec2f(32, 250),ofVec2f(900, 100));
-    drawSoundrect("LeftIn", left,ofVec2f(32, 250),ofVec2f(900, 100));
-    drawSoundrect("delaySamples", delaySamples,ofVec2f(32, 350),ofVec2f(900, 100));
+    int leftMargin = 32;
+    int currentTop = 50;
+    ofVec2f boxSz(900, 100);
+    drawSoundrect("Left Channel", lAudio,ofVec2f(leftMargin, currentTop),boxSz);
+    drawSoundrect("Right Channel", rAudio,ofVec2f(leftMargin, currentTop+=100),boxSz);
+//	drawSoundrect("nAudio", nAudio,ofVec2f(leftMargin, currentTop+=100),boxSz);
+    drawSoundrect("LeftIn", left,ofVec2f(leftMargin, currentTop+=100),boxSz);
+    drawSoundrect("delaySamples", delaySamples,ofVec2f(leftMargin, currentTop+=100),boxSz);
     
 	ofSetColor(225);
 //	string reportString = "volume: ("+ofToString(volume, 2)+") modify with -/+ keys\npan: ("+ofToString(pan, 2)+") modify with mouse x\nsynthesis: ";
@@ -186,7 +189,8 @@ void ofApp::audioIn(float * input, int bufferSize, int nChannels){
 		curVol += right[i] * right[i];
 		numCounted+=2;
         int myIndex = (delayMic1InsertionIndex+i)%delaySamples.size();
-        delaySamples[myIndex] += input[i*2];
+        //add current left samples into delay buffer
+        delaySamples[myIndex] += input[i*2]*2;
 //        delaySamples.pop_back();
 //        delaySamples.insert(delaySamples.begin(), input[i*2]);
 	}
