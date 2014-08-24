@@ -36,7 +36,7 @@ void ofApp::setup()
     
 	soundStream.listDevices();
 	//if you want to set the device id to be different than the default
-    soundStream.setDeviceID(9); 	//note some devices are input only and some are output only
+//    soundStream.setDeviceID(9); 	//note some devices are input only and some are output only
 
 	soundStream.setup(this, OUT_CHANNEL_COUNT, 2, sampleRate, bufferSize, 5);
 
@@ -45,7 +45,7 @@ void ofApp::setup()
     gui.setup(); // most of the time you don't need a name
     gui.setSize(900, 30);
     gui.add(sampleLenSlider.setup( "sampleLen", 2048*16, 500,  2048*128,900));
-    gui.add(sampleFadeSlider.setup( "sampleFade", .99, .98,  .99999,900));
+    gui.add(sampleFadeSlider.setup( "sampleFade", .99, .98,  1,900));
     gui.add(channelSpacingSlider.setup( "channel spacing", .5, 0,  1.f,900));
     channelSpacingSlider.addListener(this,&ofApp::spacingChanged);
     
@@ -219,26 +219,107 @@ void ofApp::windowResized(int w, int h)
 {
 
 }
+
+
+void ofApp::compressor()
+{
+    
+    float scaleAmt = 50;
+    for (int i = 0; i < delaySamples.size();i++ )
+    {
+        
+        {
+            delaySamples[i] = delaySamples[i]*scaleAmt;
+            delaySamples[i] = min(delaySamples[i],.2f);
+            delaySamples[i] = max(delaySamples[i],-.2f);
+//            delaySamples[i] = delaySamples[i]/scaleAmt;
+        }
+        
+    }
+}
+
+
+void ofApp::bitcrusher()
+{
+    int stride = (int)(ofRandom(1, 5));
+
+    for (int i = 0; i < delaySamples.size(); )
+    {
+        for (int j = 1; j < stride &&i+stride<delaySamples.size(); j++)
+        {
+            delaySamples[(i+j)%delaySamples.size()] = delaySamples[(i)%delaySamples.size()];
+        }
+        i+=stride;
+        stride = (int)(ofRandom(1, 5));
+    }
+}
+
+void ofApp::bitcrusher(int start, int end)
+{
+    int stride = (int)(ofRandom(1, 15));
+    
+    for (int i = start; i < end; )
+    {
+        for (int j = 1; j < stride &&i+stride<end; j++)
+        {
+            delaySamples[(i+j)%delaySamples.size()] = delaySamples[(i)%delaySamples.size()];
+        }
+        i+=stride;
+//        stride = (int)(ofRandom(1, 15));
+    }
+}
+
+
+//void ofApp::bitcrusher()
+//{
+//    
+//}
+
+void ofApp::fade()
+{
+    for (int i = 0; i < delaySamples.size(); i++)
+    {
+        delaySamples[i] *= sampleFadeSlider;
+    }
+}
+void ofApp::fade(int start, int end)
+{
+    for (int i = start; i < end; i++)
+    {
+        delaySamples[i%delaySamples.size()] *= sampleFadeSlider;
+    }
+}
+
 //--------------------------------------------------------------
 void ofApp::audioIn(float * input, int bufferSize, int nChannels)
 {
     bufferInUse = true;
-    for (int i = 0; i < delaySamples.size(); i++)
-    {
-        delaySamples[i] *= sampleFadeSlider;//.99;
-//        delaySamples[i] += delaySamples[i-1]*.001;
-//        delaySamples[i] += delaySamples[i+1]*.01;
-    }
+//    for (int i = 0; i < delaySamples.size(); i++)
+//    {
+//        delaySamples[i] *= sampleFadeSlider;//.99;
+////        delaySamples[i] += delaySamples[i-1]*.001;
+////        delaySamples[i] += delaySamples[i+1]*.01;
+//    }
+    fade();
+    float fluctd = 5*sin(ofGetElapsedTimef());
 	//lets go through each sample and calculate the root mean square which is a rough way to calculate volume
     //interleaved samples
+    bitcrusher(delayMic1InsertionIndex,delayMic1InsertionIndex+bufferSize);
+//    compressor();
 	for (int i = 0; i < bufferSize; i++)
     {
-		input1[i]		= input[i*nChannels]*0.5;
-		input2[i]	= input[i*nChannels+1]*0.5;
+		input1[i] = input[i*nChannels]*0.5;
+		input2[i] = input[i*nChannels+1]*0.5;
         
         int myIndex = (delayMic1InsertionIndex+i)%delaySamples.size();
         //add current left samples into delay buffer
         delaySamples[myIndex] += input[i*nChannels]*2;
+//
+////        float rndoff = ofRandom(1);
+//        int tmp =(int)(delaySamples[myIndex]*fluctd);
+////        delaySamples[myIndex] = (((int)(delaySamples[myIndex]*0xefffffff)/10000));
+//        delaySamples[myIndex] = (tmp)/(1.f*fluctd);
+        delaySamples[myIndex] = delaySamples[myIndex] + input[i*nChannels]*2;
         
         myIndex = (delayMic2InsertionIndex+i)%delaySamples.size();
         //add current left samples into delay buffer

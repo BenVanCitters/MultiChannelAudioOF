@@ -4,7 +4,7 @@
 #include "ofxGui.h"
 
 
-#define OUT_CHANNEL_COUNT 5
+#define OUT_CHANNEL_COUNT 2
 
 class ofApp : public ofBaseApp
 {
@@ -53,4 +53,11 @@ public:
     vector <float> input2;
     int delayMic1InsertionIndex;
     int delayMic2InsertionIndex;
+    
+    void compressor();
+//    void ofApp::compressor();
+    void bitcrusher();
+    void bitcrusher(int start, int end);
+    void fade();
+    void fade(int start, int end);
 };
