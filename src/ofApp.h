@@ -1,60 +1,54 @@
 #pragma once
 
 #include "ofMain.h"
-
-class ofApp : public ofBaseApp{
-
-	public:
-
-		void setup();
-		void update();
-		void draw();
-
-		void keyPressed  (int key);
-		void keyReleased(int key);
-		void mouseMoved(int x, int y );
-		void mouseDragged(int x, int y, int button);
-		void mousePressed(int x, int y, int button);
-		void mouseReleased(int x, int y, int button);
-		void windowResized(int w, int h);
-		void dragEvent(ofDragInfo dragInfo);
-		void gotMessage(ofMessage msg);
-		
-		void audioOut(float * input, int bufferSize, int nChannels);
-		void audioIn(float * input, int bufferSize, int nChannels);
+#include "ofxGui.h"
 
 
-    void drawSoundrect(string name, vector <float> samples,ofVec2f pos, ofVec2f sz);
+#define OUT_CHANNEL_COUNT 5
+
+class ofApp : public ofBaseApp
+{
+
+public:
+
+    void setup();
+    void update();
+    void draw();
+    void exit();
+    void keyPressed  (int key);
+    void keyReleased(int key);
+    void mouseMoved(int x, int y );
+    void mouseDragged(int x, int y, int button);
+    void mousePressed(int x, int y, int button);
+    void mouseReleased(int x, int y, int button);
+    void windowResized(int w, int h);
+    void dragEvent(ofDragInfo dragInfo);
+    void gotMessage(ofMessage msg);
     
-        ofSoundStream soundStream;
+    void audioOut(float * input, int bufferSize, int nChannels);
+    void audioIn(float * input, int bufferSize, int nChannels);
+    void sampleLenChanged(int & sampleLenChanged);
+    void drawSoundrect(string name, vector <float> samples,ofVec2f pos, ofVec2f sz,ofColor color = ofColor(245, 58, 135));
 
-		float 	pan;
-		int		sampleRate;
-		bool 	bNoise;
-		float 	volume;
+    //GUI
+    ofxPanel gui;
+    ofxIntSlider sampleLenSlider;
+    ofxFloatSlider sampleFadeSlider;
+    bool bufferInUse;
+    
+    ofSoundStream soundStream;
+    int bufferSize;
+    int sampleRate;
 
 	//output
+    vector<float> outputBuffers[OUT_CHANNEL_COUNT];
+    int outputBufferCurrentIndex[OUT_CHANNEL_COUNT];
 
-    vector <float> lAudio;
-    int speaker1Index;
-    
-		vector <float> rAudio;
-    int speaker2Index;
-    vector <float> nAudio;
-    
-    
-    int delayMic1InsertionIndex;
     vector <float> delaySamples;
     
     // input
-    vector <float> left;
-    vector <float> right;
-    
-    
-		
-		//------------------- for the simple sine wave synthesis
-		float 	targetFrequency;
-		float 	phase;
-		float 	phaseAdder;
-		float 	phaseAdderTarget;
+    vector <float> input1;
+    vector <float> input2;
+    int delayMic1InsertionIndex;
+    int delayMic2InsertionIndex;
 };
