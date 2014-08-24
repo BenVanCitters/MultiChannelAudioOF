@@ -28,6 +28,7 @@ public:
     void audioOut(float * input, int bufferSize, int nChannels);
     void audioIn(float * input, int bufferSize, int nChannels);
     void sampleLenChanged(int & sampleLenChanged);
+    void spacingChanged(float & spacing);
     void drawSoundrect(string name, vector <float> samples,ofVec2f pos, ofVec2f sz,ofColor color = ofColor(245, 58, 135));
 
     //GUI
@@ -35,6 +36,7 @@ public:
     ofxIntSlider sampleLenSlider;
     ofxFloatSlider sampleFadeSlider;
     bool bufferInUse;
+    ofxFloatSlider channelSpacingSlider;
     
     ofSoundStream soundStream;
     int bufferSize;

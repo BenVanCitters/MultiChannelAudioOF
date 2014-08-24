@@ -46,6 +46,9 @@ void ofApp::setup()
     gui.setSize(900, 30);
     gui.add(sampleLenSlider.setup( "sampleLen", 2048*16, 500,  2048*128,900));
     gui.add(sampleFadeSlider.setup( "sampleFade", .99, .98,  .99999,900));
+    gui.add(channelSpacingSlider.setup( "channel spacing", .5, 0,  1.f,900));
+    channelSpacingSlider.addListener(this,&ofApp::spacingChanged);
+    
     sampleLenSlider.addListener(this,&ofApp::sampleLenChanged);
     
 	ofSetFrameRate(60);
@@ -55,6 +58,15 @@ void ofApp::exit()
 {
     soundStream.stop();
     sampleLenSlider.removeListener(this,&ofApp::sampleLenChanged);
+    channelSpacingSlider.removeListener(this,&ofApp::spacingChanged);
+}
+
+void ofApp::spacingChanged(float & spacing)
+{
+    for(int i = 0; i < OUT_CHANNEL_COUNT; i++)
+    {
+        outputBufferCurrentIndex[i] = spacing*delaySamples.size()*i*1.f/OUT_CHANNEL_COUNT;
+    }
 }
 
 void ofApp::sampleLenChanged(int & sampleLenChanged)
@@ -65,7 +77,7 @@ void ofApp::sampleLenChanged(int & sampleLenChanged)
     delaySamples.resize(sampleLenChanged);
     for(int i = 0; i < OUT_CHANNEL_COUNT; i++)
     {
-        outputBufferCurrentIndex[i] = (int)(delaySamples.size()*i*1.f/OUT_CHANNEL_COUNT);
+        outputBufferCurrentIndex[i] = channelSpacingSlider*delaySamples.size()*i*1.f/OUT_CHANNEL_COUNT;
     }
     delayMic1InsertionIndex = 0;
     delayMic2InsertionIndex = delaySamples.size()/2;
@@ -91,6 +103,35 @@ void ofApp::draw()
     ofVec2f boxSz(900, 100);
     
     drawSoundrect("delaySamples", delaySamples,ofVec2f(leftMargin, currentTop),ofVec2f(900,600),ofColor(0,255,0));
+    for(int j = 0; j < OUT_CHANNEL_COUNT; j++)
+    {
+        ofPushMatrix();
+        float xPos = leftMargin+boxSz.x*outputBufferCurrentIndex[j]*1.f/delaySamples.size();
+        ofTranslate(xPos, currentTop+600/2);
+        ofEllipse(0,0, 50, 50);
+        ofTranslate(-40,-40);
+        ofDrawBitmapString("output#"+ofToString(j),0,0);
+        ofPopMatrix();
+    }
+    ofSetColor(225,255,0);
+    {
+        ofPushMatrix();
+        float xPos = leftMargin+boxSz.x*delayMic1InsertionIndex*1.f/delaySamples.size();
+        ofTranslate(xPos, currentTop+600/2);
+        ofEllipse(0,0, 50, 50);
+        ofTranslate(-40,-40);
+        ofDrawBitmapString("Input1",0,0);
+        ofPopMatrix();
+    }
+    {
+        ofPushMatrix();
+        float xPos = leftMargin+boxSz.x*delayMic2InsertionIndex*1.f/delaySamples.size();
+        ofTranslate(xPos, currentTop+600/2);
+        ofEllipse(0,0, 50, 50);
+        ofTranslate(-40,-40);
+        ofDrawBitmapString("Input2",0,0);
+        ofPopMatrix();
+    }
     for(int i = 0; i < OUT_CHANNEL_COUNT; i++)
     {
         drawSoundrect("Channel["+ofToString(i)+"]", outputBuffers[i],ofVec2f(leftMargin, currentTop),boxSz);
@@ -185,7 +226,7 @@ void ofApp::audioIn(float * input, int bufferSize, int nChannels)
     for (int i = 0; i < delaySamples.size(); i++)
     {
         delaySamples[i] *= sampleFadeSlider;//.99;
-        delaySamples[i] += delaySamples[i-1]*.001;
+//        delaySamples[i] += delaySamples[i-1]*.001;
 //        delaySamples[i] += delaySamples[i+1]*.01;
     }
 	//lets go through each sample and calculate the root mean square which is a rough way to calculate volume
@@ -195,12 +236,10 @@ void ofApp::audioIn(float * input, int bufferSize, int nChannels)
 		input1[i]		= input[i*nChannels]*0.5;
 		input2[i]	= input[i*nChannels+1]*0.5;
         
-//      left2[i]		= input[i*nChannels+2]*0.5;
-//		right2[i]	= input[i*nChannels+3]*0.5;
-        
         int myIndex = (delayMic1InsertionIndex+i)%delaySamples.size();
         //add current left samples into delay buffer
         delaySamples[myIndex] += input[i*nChannels]*2;
+        
         myIndex = (delayMic2InsertionIndex+i)%delaySamples.size();
         //add current left samples into delay buffer
         delaySamples[myIndex] += input[i*nChannels+1]*2;
@@ -208,7 +247,6 @@ void ofApp::audioIn(float * input, int bufferSize, int nChannels)
     bufferInUse = false;
 	delayMic1InsertionIndex = (delayMic1InsertionIndex+bufferSize)%delaySamples.size();
     delayMic2InsertionIndex = (delayMic2InsertionIndex+bufferSize)%delaySamples.size();
-
 }
 
 //--------------------------------------------------------------
